@@ -5,6 +5,18 @@ const path = require('path');
 if (!process.env.SESSION_COOKIE) {
  console.log("Make sure you defined 'SESSION_COOKIE' in your .env file");
 }
+
+// runs our async parser and displays the context
+function run(callback, context) {
+  (async () => {
+    const context = {total: 0}
+    await parse(callback, context);
+    console.log(context);
+  })();
+
+}
+
+// given a callback and a context, calls the callback for each line in the data
 async function parse(callback, context) {
   // file names are like /a/b/1a.js
   // convert /a/b/1a.js -> 1a
@@ -30,4 +42,4 @@ async function parse(callback, context) {
   }
 }
 
-module.exports = parse;
+module.exports = run;
