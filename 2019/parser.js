@@ -9,7 +9,6 @@ if (!process.env.SESSION_COOKIE) {
 // runs our async parser and displays the context
 function run(callback, context) {
   (async () => {
-    const context = {total: 0}
     await parse(callback, context);
     console.log(context);
   })();
