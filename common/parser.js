@@ -35,10 +35,16 @@ const Parser = class {
   }
 
   // runs our async parser and displays the context
+  // context options:
+  // suppressContextOutput - don't display at the end
+  // restartData - will begin with the first line of input after the last line
+  //              instead of stopping at the end
   run(callback, context, lineParser = defaultLineParser) {
     (async () => {
       await this.parse(callback, context, lineParser);
-      console.log(context);
+      if (!context.suppressContextOutput) {
+        console.log(context);
+      }
     })();
 
   }
@@ -61,10 +67,12 @@ const Parser = class {
     // split it on newlines
     const lines = data.trim().split(/\r?\n/);
 
-    // call the callback for each line
-    for (const line of lines) {
-      callback(lineParser(line), context)
-    }
+    do {
+      // call the callback for each line
+      for (const line of lines) {
+        callback(lineParser(line), context)
+      }
+    } while (context.restartData)
   }
 }
 
