@@ -84,6 +84,7 @@ const Parser = class {
   //  onEnd: string || function - name of a known handler or function to handler - defaults to console log
   //  context: object to be passed to callbacks
   //  restartData: after we finish processing the data start it up again.
+  //  data: don't pull data from the web and use this instead
   //
   async parse(options) {
     const onData = this.stringOrFunc(options.onData, 'defaultDataHandler');
@@ -98,7 +99,7 @@ const Parser = class {
     const year = parseInt(paths[paths.length - 3], 10);
 
     // download the data
-    let data = await request({
+    let data = options.data || await request({
       url: `https://adventofcode.com/${year}/day/${day}/input`,
       headers: {
         Cookie: `session=${process.env.SESSION_COOKIE}`
