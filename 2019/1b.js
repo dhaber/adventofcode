@@ -1,4 +1,4 @@
-const run = require('./parser.js');
+const parser = require('./parser.js');
 
 function callback(line, context) {
   let val = Math.floor(line / 3) - 2;
@@ -9,4 +9,4 @@ function callback(line, context) {
   callback(val, context);
 }
 
-run(callback, {total: 0});
+parser.run(callback, {total: 0});
