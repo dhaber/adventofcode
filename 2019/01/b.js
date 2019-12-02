@@ -9,4 +9,7 @@ function callback(line, context) {
   callback(val, context);
 }
 
-parser.run(callback, {total: 0});
+parser.run({
+  onLine: callback,
+  context: {total: 0}
+});

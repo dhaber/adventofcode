@@ -7,50 +7,91 @@ if (!process.env.SESSION_COOKIE) {
  process.exit(-1);
 }
 
-function defaultLineParser(line) {
-  return line.trim();
-}
-
-function commaLineParser(line) {
-  return defaultLineParser(line).split(',');
-}
-
-function commaIntLineParser(line) {
-  return commaLineParser(line).map(i => parseInt(i, 10));
-}
-
 const Parser = class {
-  constructor() {
-    this.defaultLineParser = defaultLineParser;
-    this.commaLineParser = commaLineParser;
-    this.commaIntLineParser = commaIntLineParser;
+  constructor() {}
+
+  // no op for data
+  defaultDataHandler(lines) {
+    return lines;
   }
 
+  // trims each line
+  defaultLineParser(line) {
+    return line.trim();
+  }
+
+  // splits each line by comma into an array
+  commaLineParser(line) {
+    return this.defaultLineParser(line).split(',');
+  }
+
+  // splits each line by comman into an array and converts to ints
+  commaIntLineParser(line) {
+    return this.commaLineParser(line).map(i => parseInt(i, 10));
+  }
+
+  // converts each line to an int
   intLineParser(line) {
-    return parseInt(defaultLineParser(line),10);
+    return parseInt(this.defaultLineParser(line),10);
   }
 
-  runWithInts(callback, context) {
-    this.run(callback, context, this.intLineParser);
+  // no op on line
+  defaultLineHandler(line) {
+    return line;
   }
 
-  // runs our async parser and displays the context
-  // context options:
-  // suppressContextOutput - don't display at the end
-  // restartData - will begin with the first line of input after the last line
-  //              instead of stopping at the end
-  run(callback, context, lineParser = defaultLineParser) {
+  // writes the context out to the console
+  defaultEndHandler(context) {
+    console.log(context);
+  }
+
+  noopEndHandler(context) {}
+
+  partialContextEndHandler(key, context) {
+    console.log(context[key]);
+  }
+
+  // This is syntactic sugar to call parse
+  run(options) {
     (async () => {
-      await this.parse(callback, context, lineParser);
-      if (!context.suppressContextOutput) {
-        console.log(context);
-      }
+      await this.parse(options);
     })();
-
   }
 
-  // given a callback and a context, calls the callback for each line in the data
-  async parse(callback, context, lineParser) {
+  // given a string or function will return the appropriate function or a
+  // default.  The string will be a function on this.
+  stringOrFunc(str, def) {
+    let func = str || def;
+    if (typeof func == 'string') {
+      func = this[func].bind(this);
+    }
+
+    if (!func) {
+      console.log("Could not find function", func);
+      process.exit(-2);
+    }
+
+    return func;
+  }
+
+  // infers the input from executing module (e.g. /foo/bar/2019/02/a.js)
+  // and then retrieves the input from the web.  Parses the input and
+  // makes it available for processing using these options:
+  // Options:
+  //  onData: string || function  - name of a known handler or function to handle - defaults to noop
+  //  lineParser: string || function - name of a known handler or function to parse the line - defaults to trim
+  //  onLine: string || function - name of a known handler or function to handler - return false to stop processing
+  //  onEnd: string || function - name of a known handler or function to handler - defaults to console log
+  //  context: object to be passed to callbacks
+  //  restartData: after we finish processing the data start it up again.
+  //
+  async parse(options) {
+    const onData = this.stringOrFunc(options.onData, 'defaultDataHandler');
+    const lineParser = this.stringOrFunc(options.lineParser, 'defaultLineParser');
+    const onLine = this.stringOrFunc(options.onLine, 'defaultLineHandler');
+    const onEnd = this.stringOrFunc(options.onEnd, 'defaultEndHandler');
+    const context = options.context || {};
+
     // this looks like /a/b/c/2019/02/a.js
     const paths  = require.main.filename.split(path.sep);
     const day = parseInt(paths[paths.length - 2], 10);
@@ -66,13 +107,23 @@ const Parser = class {
 
     // split it on newlines
     const lines = data.trim().split(/\r?\n/);
+    onData(lines, context);
 
+    let stop = false;
     do {
       // call the callback for each line
-      for (const line of lines) {
-        callback(lineParser(line), context)
+      for (let line of lines) {
+        line = lineParser(line, context);
+        stop = onLine(line, context) === false;
+
+        if (stop) {
+          break;
+        }
+
       }
-    } while (context.restartData)
+    } while (!stop && options.restartData)
+
+    onEnd(context);
   }
 }
 

@@ -27,7 +27,7 @@ function callback(defaultMemory, context) {
       memory[2] = verb;
       const result = run(memory);
       if (result == 19690720) {
-        console.log(100 * noun + verb);
+        context.output = 100 * noun + verb;
         return;
       }
     }
@@ -35,4 +35,7 @@ function callback(defaultMemory, context) {
   console.log("could not find result");
 }
 
-parser.run(callback, {}, parser.commaIntLineParser);
+parser.run({
+  lineParser: 'commaIntLineParser',
+  onLine: callback
+});

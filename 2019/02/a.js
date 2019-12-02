@@ -5,7 +5,6 @@ function callback(memory, context) {
   memory [2] = 2;
 
   for (let i =0; i < memory.length; i+=4) {
-    console.log(memory);
     const opcode = memory[i];
     switch (opcode) {
       case 1:
@@ -15,13 +14,16 @@ function callback(memory, context) {
         memory[memory[i+3]] = memory[memory[i+1]] * memory[memory[i+2]];
         break;
       case 99:
-        console.log(memory[0]);
-        return;
+        context.output = memory[0];
+        return false;
       default:
         console.log("Unexpected opcode", opcode, i, memory);
-        return;
+        return false;
     }
   }
 }
 
-parser.run(callback, {}, parser.commaIntLineParser);
+parser.run({
+  lineParser: 'commaIntLineParser',
+  onLine: callback
+});

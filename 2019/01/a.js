@@ -5,4 +5,7 @@ function callback(line, context) {
   context.total += val;
 }
 
-parser.run(callback, {total: 0});
+parser.run({
+  onLine: callback,
+  context: {total: 0}
+});

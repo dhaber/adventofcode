@@ -4,4 +4,8 @@ function callback(line, context) {
   context.total += line;
 }
 
-parser.runWithInts(callback, {total: 0});
+parser.run({
+  lineParser: 'intLineParser',
+  onLine: callback,
+  context: {total: 0}
+});
