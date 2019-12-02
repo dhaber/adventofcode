@@ -1,4 +1,4 @@
-const parser = require('./parser.js');
+const parser = require('../../common/parser.js');
 
 function run(memory) {
   for (let i =0; i < memory.length; i+=4) {

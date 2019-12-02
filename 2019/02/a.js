@@ -1,4 +1,4 @@
-const parser = require('./parser.js');
+const parser = require('../../common/parser.js');
 
 function callback(memory, context) {
   memory[1] = 12;

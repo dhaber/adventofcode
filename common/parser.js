@@ -26,6 +26,14 @@ const Parser = class {
     this.commaIntLineParser = commaIntLineParser;
   }
 
+  intLineParser(line) {
+    return parseInt(defaultLineParser(line),10);
+  }
+
+  runWithInts(callback, context) {
+    this.run(callback, context, this.intLineParser);
+  }
+
   // runs our async parser and displays the context
   run(callback, context, lineParser = defaultLineParser) {
     (async () => {
@@ -37,16 +45,14 @@ const Parser = class {
 
   // given a callback and a context, calls the callback for each line in the data
   async parse(callback, context, lineParser) {
-    // file names are like /a/b/1a.js
-    // convert /a/b/1a.js -> 1a
-    let file = path.posix.basename(require.main.filename, '.js');
-
-    // convert 1a -> 1
-    file = file.replace(/[ab]/, '');
+    // this looks like /a/b/c/2019/02/a.js
+    const paths  = require.main.filename.split(path.sep);
+    const day = parseInt(paths[paths.length - 2], 10);
+    const year = parseInt(paths[paths.length - 3], 10);
 
     // download the data
     let data = await request({
-      url: `https://adventofcode.com/2019/day/${file}/input`,
+      url: `https://adventofcode.com/${year}/day/${day}/input`,
       headers: {
         Cookie: `session=${process.env.SESSION_COOKIE}`
       }
