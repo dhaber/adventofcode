@@ -1,5 +1,6 @@
 const parser = require('../../common/parser.js');
 
+// Returns the mode (immediate or position) based on the position
 function getMode(instruction, position) {
   const mode = Math.floor(instruction / Math.pow(10,position)) % 10;
   if (mode > 1 || mode < 0) {
@@ -9,6 +10,7 @@ function getMode(instruction, position) {
   return mode;
 }
 
+// Reads a value from memory in the position
 function getValue(memory, position, mode) {
   // position mode
   if (mode == 0) {
@@ -21,6 +23,10 @@ function getValue(memory, position, mode) {
   throw new Error("Unexpected mode");
 }
 
+// Executes an instruction
+// Updates the program based on the result
+// Updates include the program ptr, if the program is awaiting input,
+// if the program exited and the program output
 function handleInstruction(instruction, program) {
   const opcode = instruction % 100;
   let memory = program.memory;
@@ -43,9 +49,7 @@ function handleInstruction(instruction, program) {
 
     // read input
     case 3:
-//      console.log("input", program.input);
       if (program.input.length == 0) {
-//        console.log("no input");
         program.needsInput = true;
         return 2;
       }
@@ -56,7 +60,6 @@ function handleInstruction(instruction, program) {
     // write output
     case 4:
       a = getValue(memory, program.ptr+1, getMode(instruction,2));
-//      console.log("output",a);
       program.output = a;
       program.ptr += 2;
       break;
@@ -100,8 +103,7 @@ function handleInstruction(instruction, program) {
       break;
 
     case 99:
-//      console.log("exit", memory[0]);
-      program.exit = memory[0]
+      program.exit = true
       return;
     default:
       console.log("Unexpected opcode", opcode, program.ptr);
@@ -109,18 +111,24 @@ function handleInstruction(instruction, program) {
   }
 }
 
+// Executes instructions until the program finishes, needs input or provides output
 function runProgram(program) {
+  program.output = null;
+  program.exit = null;
+  program.needsInput = false;
+  
   while (true) {
     const instruction = program.memory[program.ptr];
     handleInstruction(instruction, program);
-    if (program.output || !!program.exit || program.needsInput) {
-//      console.log("exiting");
-      return;
+    if (program.output || program.exit || program.needsInput) {
+      return program.output;
     }
   }
 
 }
 
+// Gets a set of sequences and executes programs against them
+// Finds the largest output
 function onLine(program, context) {
   let max = 0;
   let sequences = [];
@@ -134,6 +142,7 @@ function onLine(program, context) {
   console.log(max);
 }
 
+// Recursively creates an array of nums in all possible values
 function getSequences(nums, arr, output) {
   if (nums.length == 0) {
     output.push(arr);
@@ -150,26 +159,33 @@ function getSequences(nums, arr, output) {
   }
 }
 
-function runSequence(program, context, sequence) {
-  context.output = 0;
-  context.exit = false;
+// Given a memory and a sequence returns a program for each member of the sequence
+function loadPrograms(memory, sequence) {
   let programs = [];
   for (let j=0; j < sequence.length; j++) {
-    programs.push({memory: program.slice(), input: [sequence[j]], ptr: 0, id: sequence[j]});
+    programs.push({memory: memory.slice(), input: [sequence[j]], ptr: 0, id: sequence[j]});
   }
+  return programs;
+}
 
+// Runs programs for each member of the sequence in order
+// Exits if a program finishes, passes output to the next program in the
+// sequence.  Waits for input if necessary.
+function runSequence(memory, context, sequence) {
+  let programs = loadPrograms(memory, sequence);
+
+  context.output = 0;
   while (programs.length > 0) {
     let program = programs.shift();
-    program.output = null;
-    program.exit = null;
-    program.needsInput = false;
+
     program.input.push(context.output);
-//    console.log('before',program.id, program.input);
-    runProgram(program);
-//    console.log('after',program.id, program.input, program.output, program.exit);
-    context.output = program.output;
+    context.output = runProgram(program);
+
+    // If the program didn't exit then return it to the queue
     if (!program.exit) {
       programs.push(program);
+
+    // If the program did exit then pass its input as the output
     } else {
       context.output = program.input[0];
     }
