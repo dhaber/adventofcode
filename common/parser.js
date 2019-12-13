@@ -35,6 +35,23 @@ const Parser = class {
     return parseInt(this.defaultLineParser(line),10);
   }
 
+  // Assumes one object per line that looks like:
+  // <a=b, c=d, e=f>
+  objectParser(line) {
+    line = this.defaultLineParser(line);
+    if (!line.charAt(0) == '<' && !line.charAt(line.length-1) == '>') {
+      throw Error(`Not an object :{line}:`);
+    }
+
+    line = line.substring(1, line.length-1);
+    let object = {};
+    for (let section of line.split(',')) {
+      let [key, value] = section.trim().split('=');
+      object[key] = value;
+    }
+    return object;
+  }
+
   // no op on line
   defaultLineHandler(line) {
     return line;
